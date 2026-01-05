@@ -5,7 +5,7 @@ class Coherer{
     constructor(){
 
     }
-    static SECRET = process.env.TESLA_SECRET || 'tesla_secret_dev_key'
+    static SECRET = process.env.NICOLA_SECRET || 'nicola_secret_dev_key'
 
     static codec(jsonData){
         const dataString = JSON.stringify(jsonData);

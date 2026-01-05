@@ -1,11 +1,11 @@
 /**
- * Tesla Framework - Main Export
+ * Nicola Framework - Main Export
  * 
  * Punto de entrada principal del framework
  */
 
 // Core
-export { default as Tesla } from './core/Core.js';
+export { default as Nicola } from './core/Core.js';
 export { default as Remote } from './core/Remote.js';
 
 // Middlewares
@@ -26,6 +26,6 @@ export { default as DevRunner } from './dev-tools/DevRunner.js';
 // Database (Dynamo ORM)
 export { default as Dynamo } from './database/index.js';
 
-// Default export (Tesla Core)
-import Tesla from './core/Core.js';
-export default Tesla;
+// Default export (Nicola Core)
+import Nicola from './core/Core.js';
+export default Nicola;
