@@ -36,9 +36,9 @@ npm install nicola-framework
 ### Servidor HTTP Básico
 
 ```javascript
-import Tesla from 'nicola-framework';
+import Nicola from 'nicola-framework';
 
-const app = new Tesla();
+const app = new Nicola();
 
 app.get('/', (req, res) => {
   res.json({ message: 'Hello from Nicola!' });
@@ -52,9 +52,9 @@ app.listen(3000, () => {
 ### Con Router y Middlewares
 
 ```javascript
-import { Tesla, Remote, Shadowgraph, Teleforce } from 'nicola-framework';
+import { Nicola, Remote, Shadowgraph, Teleforce } from 'nicola-framework';
 
-const app = new Tesla();
+const app = new Nicola();
 const router = new Remote();
 
 // Middlewares globales
@@ -78,7 +78,7 @@ app.listen(3000);
 ### Con ORM (Dynamo)
 
 ```javascript
-import { Tesla, Dynamo } from 'nicola-framework';
+import { Nicola, Dynamo } from 'nicola-framework';
 import User from './models/User.js';
 
 // Configurar base de datos
@@ -90,7 +90,7 @@ await Dynamo.connect({
   database: 'mydb'
 });
 
-const app = new Tesla();
+const app = new Nicola();
 
 // Crear usuario
 app.post('/users', async (req, res) => {
@@ -135,9 +135,9 @@ Nicola está compuesto por módulos independientes que trabajan en armonía:
 El servidor HTTP principal con soporte de middlewares.
 
 ```javascript
-import Tesla from 'nicola-framework';
+import Nicola from 'nicola-framework';
 
-const app = new Tesla();
+const app = new Nicola();
 
 // Métodos HTTP
 app.get('/users', handler);
@@ -403,12 +403,12 @@ node dev.js
 ### API REST con Autenticación
 
 ```javascript
-import { Tesla, Remote, Coherer, Regulator } from 'nicola-framework';
+import { Nicola, Remote, Coherer, Regulator } from 'nicola-framework';
 import User from './models/User.js';
 
 Regulator.load();
 
-const app = new Tesla();
+const app = new Nicola();
 const router = new Remote();
 const jwt = new Coherer(process.env.JWT_SECRET);
 
@@ -462,7 +462,7 @@ app.listen(3000);
 ### CRUD Completo
 
 ```javascript
-import { Tesla, Remote, Dynamo, Insulator, Shadowgraph, BlackBox } from 'nicola-framework';
+import { Nicola, Remote, Dynamo, Insulator, Shadowgraph, BlackBox } from 'nicola-framework';
 import Post from './models/Post.js';
 
 await Dynamo.connect({
@@ -471,7 +471,7 @@ await Dynamo.connect({
   database: 'blog'
 });
 
-const app = new Tesla();
+const app = new Nicola();
 const router = new Remote();
 
 app.use(Shadowgraph);  // Logger
@@ -611,7 +611,7 @@ MIT © [Erick Mauricio Tiznado Rodriguez](https://github.com/yourusername)
 
 ## 🙏 Agradecimientos
 
-Inspirado en la filosofía de Nikola Tesla: *"Si quieres encontrar los secretos del universo, piensa en términos de energía, frecuencia y vibración."*
+Inspirado en la filosofía de Nikola Nicola: *"Si quieres encontrar los secretos del universo, piensa en términos de energía, frecuencia y vibración."*
 
 ---
 
