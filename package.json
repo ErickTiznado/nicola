@@ -1,0 +1,33 @@
+{
+  "name": "nicola-framework",
+  "version": "1.0.0",
+  "description": "Zero-dependency web framework for Node.js",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./core": "./core/Core.js",
+    "./router": "./core/Remote.js",
+    "./middlewares/*": "./middlewares/*.js",
+    "./security/*": "./security/*.js",
+    "./database": "./database/index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "framework",
+    "web",
+    "http",
+    "server",
+    "router",
+    "middleware",
+    "zero-dependency",
+    "orm"
+  ],
+  "author": "Erick Mauricio Tiznado Rodriguez",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.6.2"
+  }
+}
