@@ -1,3 +1,5 @@
+import { isPromise } from "../utils/isPromise.js";
+
 
 class Remote {
 
@@ -29,7 +31,11 @@ class Remote {
                 }
 
                 try {
-                    fn(req, res, internalNext);
+                    let results = fn(req, res, internalNext);
+
+                    if(isPromise(results)){
+                       results.catch(internalNext); 
+                    }
                 }
                 catch (error) {
                     internalNext(error);
@@ -118,7 +124,6 @@ class Remote {
                         }
                         route.handler.handle(req, res, done);
 
-                        console.log('Esto es un sub router')
                     } else {
 
                         route.handler(req, res, next);

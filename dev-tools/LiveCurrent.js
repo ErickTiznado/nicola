@@ -1,6 +1,6 @@
 import fs from 'fs/promises'
 import { spawn } from 'child_process'
-import chalk from 'chalk'
+import { green } from '../utils/console.js';
 class LiveCurrent{
     constructor(entryPoint){
         this.entryPoint = entryPoint;
@@ -14,7 +14,7 @@ class LiveCurrent{
 
     ignite(){
         this.process=  spawn('node', [this.entryPoint], {stdio: 'inherit'});
-        console.log(chalk.greenBright(`LiveCurrent: Iniciando Servidor...`));
+        console.log(green(`LiveCurrent: Iniciando Servidor...`));
     }
     reload(){
         if(this.process){

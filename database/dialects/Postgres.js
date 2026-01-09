@@ -40,10 +40,10 @@ class Postgres extends Driver {
         }
         catch (e) {
             if (e.code === 'ERR_MODULE_NOT_FOUND') {
-                console.log('Por favor utiliza el comando npm install pg')
+                throw new Error('Por favor utiliza el comando npm install pg')
             }
             else {
-                console.error(e)
+                throw new Error(e.message)
             }
         }
     }
@@ -51,13 +51,18 @@ class Postgres extends Driver {
 
     async query(sql, params) {
         if (!this.client) {
-            return console.log("Dynamo: No hay ninguna conexion activa")
+            throw new Error("Database not connected")
         }
+        try{
         const result = await this.client.query(sql, params);
         return {
             rows: result.rows,
             count: result.rowCount
         }
+    }
+    catch(err){
+        throw new Error(`Database Query Failed:${err.code}: ${err.message}`)
+    }
     }
 
     compileSelect(builder) {

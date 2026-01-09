@@ -19,20 +19,15 @@ class Connection {
             await this.client.connect()
             return;
         }
-        if(DB_DRIVER === 'mysql'){
-            await this.__connectMysql()
-            return;
-        }
+
         throw new Error("Driver no soportado" + DB_DRIVER)
     }
 
 
 
-    static async __connectMysql(){
-
-    }
 
     static async query(sql, params){
+        if(!this.client) throw new Error("No hay conexion activa")
         return this.client.query(sql, params);
     }
 }

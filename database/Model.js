@@ -34,7 +34,7 @@ class Model {
     }
 
     static orderBy(...params){
-        return this.query().orderby(...params);
+        return this.query().orderBy(...params);
     }
         static limit(...params){
         return this.query().limit(...params);

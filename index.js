@@ -21,7 +21,6 @@ export { default as Regulator } from './security/Regulator.js';
 
 // Dev Tools
 export { default as LiveCurrent } from './dev-tools/LiveCurrent.js';
-export { default as DevRunner } from './dev-tools/DevRunner.js';
 
 // Database (Dynamo ORM)
 export { default as Dynamo } from './database/index.js';
