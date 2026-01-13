@@ -1,6 +1,6 @@
 {
   "name": "nicola-framework",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Web framework for Node.js",
   "type": "module",
   "main": "index.js",

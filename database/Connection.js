@@ -6,14 +6,27 @@ class Connection {
 
     static async connect() {
         const DB_DRIVER =  process.env.DB_DRIVER
-        const config = {
+        let config = {}
+        if(process.env.DB_URL){
+            const url = new URL(process.env.DB_URL);
+
+            config = {
+                user: url.username,
+                password: decodeURIComponent(url.password),
+                host: url.hostname,
+                port: url.port,
+                database: url.pathname.slice(1)
+            }
+        }
+        else{
+        config = {
                 user: process.env.DB_USER,
                 password: process.env.DB_PASS,
                 host: process.env.DB_HOST,
                 port: process.env.DB_PORT,
                 database: process.env.DB_NAME
             }
-
+        }
         if(DB_DRIVER === 'postgres'){
             this.client =  new Postgres(config)
             await this.client.connect()

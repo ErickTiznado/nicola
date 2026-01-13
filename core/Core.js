@@ -20,7 +20,7 @@ class Core extends Remote {
 
       Shadowgraph(req, res, () => {
         this.__addHelper(res);
-        EasyCors(req, res, () => {
+        EasyCors()(req, res, () => {
           Teleforce(req, res, () => {
             const done = (err) => {
               if (!err) {
@@ -70,6 +70,7 @@ class Core extends Remote {
       });
     });
     server.listen(port, callback);
+    return server;
   }
 
   __addHelper(res) {
