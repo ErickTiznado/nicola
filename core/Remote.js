@@ -91,6 +91,14 @@ class Remote {
     handle(req, res, done) {
         let index = 0
         let match = false
+
+        const matchesMountPath = (url, mountPath) => {
+            if (mountPath === '/') return true;
+            if (!url.startsWith(mountPath)) return false;
+            const nextChar = url.charAt(mountPath.length);
+            return nextChar === '' || nextChar === '/';
+        }
+
         const next = (err) => {
             if (err) {
                 return done(err)
@@ -102,7 +110,7 @@ class Remote {
                 if (!route) {
                     return done()
                 }
-                const middleware = route.method === 'USE' && req.url.startsWith(route.path);
+                const middleware = route.method === 'USE' && matchesMountPath(req.url, route.path);
                 const rutaCoincidence = route.path === req.url && route.method === req.method;
                 match = route.regex && route.regex.test(req.url) && route.method === req.method;
                 if(match){

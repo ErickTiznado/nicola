@@ -18,7 +18,7 @@ Nicola expone un **servidor HTTP nativo** con un **router tipo Express** y utili
 - **CORS**: `EasyCors` permite `*` y responde `OPTIONS` con `204`.
 - **Security headers**: `Teleforce` aplica headers básicos (no-sniff, frame deny, etc.).
 - **Logger**: `Shadowgraph` loggea al terminar la respuesta.
-- **Errores**: si un handler lanza error o llama `next(err)`, se responde HTML via `BlackBox`.
+- **Errores**: si un handler lanza error o llama `next(err)`, se responde HTML via `BlackBox`. En `NODE_ENV=production` no se envía stacktrace al cliente.
 - **JWT**: `Coherer` (HS256) funciona vía métodos **estáticos** y requiere `NICOLA_SECRET` en env.
 - **ORM**: `Dynamo` soporta **Postgres** hoy (driver `postgres`). La lib `pg` es **dependencia opcional** (se instala aparte).
 - **Hot reload**: `LiveCurrent` reinicia el proceso Node al detectar cambios en el directorio.
@@ -57,6 +57,11 @@ app.get('/', (req, res) => {
 app.listen(3000, () => {
   console.log('Server running on http://localhost:3000');
 });
+
+// Opcional: timeouts del server (en ms)
+// NICOLA_REQUEST_TIMEOUT=30000
+// NICOLA_HEADERS_TIMEOUT=10000
+// NICOLA_KEEP_ALIVE_TIMEOUT=65000
 ```
 
 ### Router anidado y params
@@ -156,6 +161,9 @@ console.log(payload.userId);
 
 ```env
 NICOLA_SECRET=mi-secreto-super-seguro
+
+# Opcional pero recomendado en producción
+NODE_ENV=production
 ```
 
 ---
@@ -171,6 +179,9 @@ import { Regulator, Dynamo } from 'nicola-framework';
 
 Regulator.load();
 await Dynamo.connect();
+
+// Recomendado en shutdown (SIGTERM/SIGINT)
+await Dynamo.disconnect();
 ```
 
 `.env` para Postgres:
@@ -182,6 +193,9 @@ DB_PORT=5432
 DB_USER=postgres
 DB_PASS=postgres
 DB_NAME=mydb
+
+# Opcional: SSL en Postgres (depende de tu hosting)
+DB_SSLMODE=require
 ```
 
 ### Modelos

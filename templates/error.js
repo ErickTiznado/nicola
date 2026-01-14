@@ -1,6 +1,15 @@
-
+const escapeHtml = (value) => {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+}
 
 export const error = (message, stack) =>{
+    const safeMessage = escapeHtml(message)
+    const safeStack = stack ? escapeHtml(stack) : null
 
    return `
 <html>
@@ -26,10 +35,9 @@ export const error = (message, stack) =>{
     <body>
         <div class = "error-box">
             <h1> Reporte de Error </h1>
-            <h2>${message}</h2>
+            <h2>${safeMessage}</h2>
         </div>
-            <h3> Reporte de Error </h3>
-            <pre>${stack}</pre>        
+            ${safeStack ? `<h3> Reporte de Error </h3><pre>${safeStack}</pre>` : ''}
     </body>
 </html>
 `

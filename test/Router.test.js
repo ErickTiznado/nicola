@@ -10,6 +10,13 @@ describe('🚦 Router System (Remote.js)', () => {
     beforeAll(() => {
         router = new Remote();
 
+        const api = new Remote();
+        api.get('/ping', (req, res) => {
+            res.statusCode = 200;
+            res.end('pong');
+        });
+        router.use('/api', api);
+
         // 1. Ruta Básica
         router.get('/', (req, res) => {
             res.statusCode = 200;
@@ -60,6 +67,15 @@ describe('🚦 Router System (Remote.js)', () => {
             const response = await request(server).get('/user/555');
             expect(response.statusCode).toBe(200);
             expect(response.body).toEqual({ id: '555' });
+        });
+
+        test('Router montado: /api no debe hacer match con /apix', async () => {
+            const ok = await request(server).get('/api/ping');
+            expect(ok.statusCode).toBe(200);
+            expect(ok.text).toBe('pong');
+
+            const no = await request(server).get('/apix/ping');
+            expect(no.statusCode).toBe(404);
         });
     });
 

@@ -5,7 +5,10 @@ class Connection {
 
 
     static async connect() {
-        const DB_DRIVER =  process.env.DB_DRIVER
+        const DB_DRIVER = process.env.DB_DRIVER
+        if (!DB_DRIVER) {
+            throw new Error('Missing DB_DRIVER environment variable')
+        }
         let config = {}
         if(process.env.DB_URL){
             const url = new URL(process.env.DB_URL);
@@ -14,7 +17,7 @@ class Connection {
                 user: url.username,
                 password: decodeURIComponent(url.password),
                 host: url.hostname,
-                port: url.port,
+                port: url.port ? Number(url.port) : undefined,
                 database: url.pathname.slice(1)
             }
         }
@@ -23,7 +26,7 @@ class Connection {
                 user: process.env.DB_USER,
                 password: process.env.DB_PASS,
                 host: process.env.DB_HOST,
-                port: process.env.DB_PORT,
+                port: process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined,
                 database: process.env.DB_NAME
             }
         }
@@ -42,6 +45,14 @@ class Connection {
     static async query(sql, params){
         if(!this.client) throw new Error("No hay conexion activa")
         return this.client.query(sql, params);
+    }
+
+    static async disconnect() {
+        if (!this.client) return
+        if (typeof this.client.disconnect === 'function') {
+            await this.client.disconnect()
+        }
+        this.client = null
     }
 }
 

@@ -11,7 +11,7 @@ class Core extends Remote {
 
   listen(port, callback) {
     const server = http.createServer((req, res) => {
-      const myURL = new URL(req.url, "http://" + req.headers.host);
+      const myURL = new URL(req.url, "http://" + (req.headers.host ?? 'localhost'));
       const pathURL = myURL.pathname;
       const urlParams = Object.fromEntries(myURL.searchParams);
 
@@ -33,19 +33,22 @@ class Core extends Remote {
             if (req.headers["content-type"]?.includes("application/json")) {
               let dataString = [];
               let chunklenght = 0;
+              let tooLarge = false;
               req.on("data", (chunk) => {
                 dataString.push(chunk);
                 chunklenght = chunklenght + chunk.length;
 
                 if (chunklenght > 2e6) {
-                  req.pause();
+                  tooLarge = true;
                   res.statusCode = 413;
                   res.end("Request Entity Too Large");
+                  req.destroy();
                   return;
                 }
               });
 
               req.on("end", () => {
+                if (tooLarge) return;
                 try {
                   if (dataString.length > 0) {
                     const buffer = Buffer.concat(dataString).toString();
@@ -69,6 +72,22 @@ class Core extends Remote {
         });
       });
     });
+
+    const requestTimeout = Number(process.env.NICOLA_REQUEST_TIMEOUT)
+    if (!Number.isNaN(requestTimeout) && requestTimeout > 0) {
+      server.requestTimeout = requestTimeout
+    }
+
+    const headersTimeout = Number(process.env.NICOLA_HEADERS_TIMEOUT)
+    if (!Number.isNaN(headersTimeout) && headersTimeout > 0) {
+      server.headersTimeout = headersTimeout
+    }
+
+    const keepAliveTimeout = Number(process.env.NICOLA_KEEP_ALIVE_TIMEOUT)
+    if (!Number.isNaN(keepAliveTimeout) && keepAliveTimeout > 0) {
+      server.keepAliveTimeout = keepAliveTimeout
+    }
+
     server.listen(port, callback);
     return server;
   }

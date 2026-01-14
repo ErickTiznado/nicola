@@ -7,6 +7,10 @@ class Dynamo{
         return Connection.connect()
     }
 
+    static async disconnect(){
+        return Connection.disconnect()
+    }
+
     static async query(sql, params){
         return Connection.query(sql, params)
     }

@@ -53,16 +53,23 @@ class Postgres extends Driver {
         if (!this.client) {
             throw new Error("Database not connected")
         }
-        try{
-        const result = await this.client.query(sql, params);
-        return {
-            rows: result.rows,
-            count: result.rowCount
+        try {
+            const result = await this.client.query(sql, params);
+            return {
+                rows: result.rows,
+                count: result.rowCount
+            }
+        } catch (err) {
+            const code = (err && err.code) ? `:${err.code}` : ''
+            const message = (err && err.message) ? err.message : String(err)
+            throw new Error(`Database Query Failed${code}: ${message}`)
         }
     }
-    catch(err){
-        throw new Error(`Database Query Failed:${err.code}: ${err.message}`)
-    }
+
+    async disconnect() {
+        if (!this.client) return
+        await this.client.end()
+        this.client = null
     }
 
     compileSelect(builder) {
