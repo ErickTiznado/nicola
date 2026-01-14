@@ -24,6 +24,7 @@
     "middleware",
     "orm"
   ],
+  "bin": "./bin/nicola.js",
   "author": "Erick Mauricio Tiznado Rodriguez",
   "license": "MIT",
   "devDependencies": {

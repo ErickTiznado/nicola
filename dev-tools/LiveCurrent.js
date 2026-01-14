@@ -25,7 +25,10 @@ class LiveCurrent{
 
     watch(){
         fs.watch(process.cwd(), {recursive: true}, (eventType, filename) => {
-            if(filename.includes('node_modules') || filename === ''){
+            if (!filename) {
+                return
+            }
+            if(filename.includes('node_modules')){
                 return
             }
             this.reload()
