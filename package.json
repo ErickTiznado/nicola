@@ -1,6 +1,6 @@
 {
   "name": "nicola-framework",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "Web framework for Node.js",
   "type": "module",
   "main": "index.js",
@@ -24,7 +24,10 @@
     "middleware",
     "orm"
   ],
-  "bin": "./bin/nicola.js",
+  "bin": {
+    "nicola": "./bin/nicola.js",
+    "nicola-framework": "./bin/nicola.js"
+  },
   "author": "Erick Mauricio Tiznado Rodriguez",
   "license": "MIT",
   "devDependencies": {

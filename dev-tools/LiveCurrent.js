@@ -1,4 +1,4 @@
-import fs from 'fs/promises'
+import fs from 'fs'
 import { spawn } from 'child_process'
 import { green } from '../utils/console.js';
 class LiveCurrent{
