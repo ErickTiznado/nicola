@@ -21,6 +21,7 @@ Nicola expone un **servidor HTTP nativo** con un **router tipo Express** y utili
 - [Request/Response (lo que hay)](#-requestresponse-lo-que-hay)
 - [Manejo de errores](#-manejo-de-errores)
 - [Middlewares](#-middlewares)
+- [Estructura recomendada para features](#-estructura-recomendada-para-features)
 - [Seguridad (Regulator + JWT)](#-seguridad-regulator--jwt)
 - [Dynamo ORM (Postgres)](#-dynamo-orm-postgres)
 - [Variables de entorno](#-variables-de-entorno)
@@ -47,7 +48,7 @@ Esta lista está alineada con el **código actual** del repositorio:
 - **Hot reload**: `LiveCurrent` reinicia el proceso Node al detectar cambios (en `process.cwd()`).
 
 ---
-
+ 
 ## 📦 Instalación
 
 Requisitos:
@@ -352,6 +353,90 @@ Agrega headers de seguridad básicos:
 Logger simple al finalizar la respuesta:
 
 `[GET] /ruta - 200 OK - 12ms`
+
+---
+
+## 🧱 Estructura recomendada para features
+
+Esta sección es **agnóstica** a la lógica de negocio y solo usa patrones compatibles con Nicola.
+
+### 1) Rutas → Controlador
+
+Las rutas deben ser delgadas: reciben request, ejecutan validación simple y delegan al controlador.
+
+```js
+import { Insulator } from "nicola-framework";
+import { UsersController } from "../controllers/UsersController.js";
+
+const users = new UsersController();
+
+const createUserSchema = {
+  email: "string",
+  password: "string",
+};
+
+export default (app) => {
+  app.post("/api/users", Insulator(createUserSchema), (req, res) => {
+    users.create(req, res);
+  });
+};
+```
+
+**Nota:** `Insulator` solo valida campos **de primer nivel** (no JSON Schema).
+
+### 2) Controlador → Servicio
+
+El controlador orquesta la lógica. Los servicios encapsulan la integración con APIs/DB.
+
+```js
+import { UsersService } from "../services/UsersService.js";
+
+export class UsersController {
+  constructor() {
+    this.service = new UsersService();
+  }
+
+  async create(req, res) {
+    try {
+      const { email, password } = req.body;
+
+      // Validación extra (si la necesitas)
+      if (!email || !password) {
+        res.statusCode = 400;
+        return res.end("Bad Request");
+      }
+
+      const user = await this.service.createUser({ email, password });
+
+      res.statusCode = 201;
+      return res.json({ user });
+    } catch (err) {
+      res.statusCode = 500;
+      return res.json({ error: "Internal Server Error" });
+    }
+  }
+}
+```
+
+### 3) Servicios / Adapters
+
+Usa servicios para encapsular integración con terceros. Esto facilita cambios futuros.
+
+```js
+export class UsersService {
+  async createUser({ email, password }) {
+    // Aquí puedes integrar DB/SDKs externos
+    return { id: 1, email };
+  }
+}
+```
+
+### 4) Consideraciones importantes
+
+- Nicola **solo** parsea JSON si `Content-Type` incluye `application/json`.
+- No existe `res.status()`; usa `res.statusCode`.
+- Si un handler async falla, el error se propaga vía `next(err)`.
+- Para variables de entorno, usa `Regulator.load()` al inicio.
 
 ---
 
