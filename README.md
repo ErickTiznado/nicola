@@ -376,16 +376,53 @@ NODE_ENV=production
 
 ### `Coherer` (JWT HS256)
 
-`Coherer` es una clase con métodos estáticos:
+`Coherer` es el módulo de JWT del framework. Está implementado con:
 
-- `Coherer.sign(payload, { expiresIn })`
-- `Coherer.verify(token)`
+- algoritmo fijo `HS256`
+- firma HMAC-SHA256
+- codificación `base64url`
 
-`expiresIn` soporta formato **número + unidad**:
+No depende de librerías externas.
 
-- `10s`, `15m`, `24h`, `7d`, `1y`
+### Requisito: `NICOLA_SECRET`
 
-Ejemplo:
+`Coherer` **siempre** usa el secreto desde `process.env.NICOLA_SECRET`. Si no existe, lanza:
+
+`Please configure, NICOLA_SECRET in the .env file`
+
+La forma típica de cargar variables es:
+
+```js
+import { Regulator } from "nicola-framework";
+
+Regulator.load();
+```
+
+`.env` mínimo:
+
+```env
+NICOLA_SECRET=mi-secreto-super-seguro
+```
+
+### API real (según código)
+
+#### `Coherer.sign(payload, options)`
+
+- Firma un token JWT.
+- Requiere `options.expiresIn` (si no existe, lanza `Expire time invalid`).
+- Siempre agrega `exp` al payload (en segundos desde epoch).
+
+Formato de `expiresIn` (estricto):
+
+- Debe ser `string` y hacer match con: `^(\d+)([smhdy])$`
+- Ejemplos válidos: `"10s"`, `"15m"`, `"24h"`, `"7d"`, `"1y"`
+- Nota: las unidades son en minúscula. `"1H"` es inválido.
+
+Si el formato no coincide, `getExpTime()` lanza:
+
+`Invalid Format, use for example: 10h, 10s, 10m, 10d`
+
+Ejemplo (firmar):
 
 ```js
 import { Regulator, Coherer } from "nicola-framework";
@@ -397,15 +434,71 @@ const token = Coherer.sign(
   { expiresIn: "24h" }
 );
 
-const payload = Coherer.verify(token);
-console.log(payload.userId);
+console.log(token); // header.payload.signature
 ```
 
-Middleware típico para proteger rutas (Bearer token):
+#### `Coherer.verify(token)`
+
+- Verifica estructura, header y firma.
+- Si el token incluye `exp`, valida expiración.
+- Devuelve el payload decodificado como objeto.
+
+Validaciones que hace (tal cual):
+
+- `token` debe ser `string` y tener 3 partes separadas por `.`.
+- el header debe ser JSON y contener `alg: "HS256"` y `typ: "JWT"`.
+- la firma debe coincidir (usa comparación segura con `crypto.timingSafeEqual`).
+- si existe `exp` y el tiempo actual supera `exp`, lanza `Token Expired`.
+
+Errores que puedes esperar (mensajes reales):
+
+- Secret faltante: `Please configure, NICOLA_SECRET in the .env file`
+- Token inválido/manipulado/mal formado: `Token Invalido`
+- Token expirado: `Token Expired`
+
+Ejemplo (verificar):
 
 ```js
-import { Coherer } from "nicola-framework";
+import { Regulator, Coherer } from "nicola-framework";
 
+Regulator.load();
+
+try {
+  const payload = Coherer.verify("<token>");
+  console.log(payload);
+} catch (err) {
+  // err.message puede ser: "Token Invalido" | "Token Expired" | ...
+  console.error(err.message);
+}
+```
+
+### Ejemplo completo: login + ruta protegida
+
+Este ejemplo usa solo primitives existentes (no hay `res.status()`):
+
+```js
+import Nicola, { Regulator, Coherer } from "nicola-framework";
+
+Regulator.load();
+
+const app = new Nicola();
+
+// 1) Endpoint de login (demo)
+app.post("/login", (req, res) => {
+  // Nicola solo parsea JSON si Content-Type incluye application/json
+  const { userId } = req.body;
+
+  if (typeof userId !== "number") {
+    res.statusCode = 400;
+    res.end("Bad Request");
+    return;
+  }
+
+  const token = Coherer.sign({ userId }, { expiresIn: "1h" });
+  res.json({ token });
+});
+
+// 2) Middleware Bearer token
 const auth = (req, res, next) => {
   const authHeader = req.headers.authorization || "";
   const [, token] = authHeader.split(" ");
@@ -417,7 +510,20 @@ const auth = (req, res, next) => {
     res.end("Unauthorized");
   }
 };
+
+// 3) Ruta protegida
+app.get("/me", auth, (req, res) => {
+  res.json({ user: req.user });
+});
+
+app.listen(3000);
 ```
+
+---
+
+### Nota importante sobre `expiresIn`
+
+Según tu implementación, `expiresIn` debe ser un `string` válido. Si pasas un tipo distinto, `getExpTime()` devuelve `null` y el token resultante tendrá `exp: null`; al verificarlo, se considerará expirado.
 
 ---
 
