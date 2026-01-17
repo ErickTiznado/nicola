@@ -25,6 +25,9 @@ export { default as LiveCurrent } from './dev-tools/LiveCurrent.js';
 // Database (Dynamo ORM)
 export { default as Dynamo } from './database/index.js';
 
+// Utilities
+export { PatternBuilder } from './pattern-builder/PatternBuilder.js';
+
 // Default export (Nicola Core)
 import Nicola from './core/Core.js';
 export default Nicola;

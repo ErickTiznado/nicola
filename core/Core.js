@@ -4,6 +4,8 @@ import BlackBox from "../middlewares/BlackBox.js";
 import Shadowgraph from "../middlewares/Shadowgraph.js";
 import Teleforce from "../middlewares/Teleforce.js";
 import EasyCors from "../middlewares/EasyCors.js";
+import {readBuffer} from "../utils/buffer.js";
+import { parseMultipart, getBoundary } from "../utils/multipart.js";
 class Core extends Remote {
   constructor() {
     super();
@@ -21,53 +23,64 @@ class Core extends Remote {
       Shadowgraph(req, res, () => {
         this.__addHelper(res);
         EasyCors()(req, res, () => {
-          Teleforce(req, res, () => {
-            const done = (err) => {
-              if (!err) {
+          Teleforce(req, res, async () => {
+            const done = (err) =>{
+              if(!err){
                 res.statusCode = 404;
                 res.end("Not Found");
-              } else {
+              }
+              else{
                 BlackBox.ignite(err, req, res);
               }
-            };
-            if (req.headers["content-type"]?.includes("application/json")) {
-              let dataString = [];
-              let chunklenght = 0;
-              let tooLarge = false;
-              req.on("data", (chunk) => {
-                dataString.push(chunk);
-                chunklenght = chunklenght + chunk.length;
-
-                if (chunklenght > 2e6) {
-                  tooLarge = true;
-                  res.statusCode = 413;
-                  res.end("Request Entity Too Large");
-                  req.destroy();
-                  return;
-                }
-              });
-
-              req.on("end", () => {
-                if (tooLarge) return;
-                try {
-                  if (dataString.length > 0) {
-                    const buffer = Buffer.concat(dataString).toString();
-                    req.body = JSON.parse(buffer);
-                  } else {
-                    req.body = {};
-                  }
-                } catch (error) {
-                  res.statusCode = 400;
-                  res.end("Bad Request: Invalid JSON");
-                  return;
-                }
-                this.handle(req, res, done);
-              });
             }
-            else {
-                req.body = {};
-                this.handle(req, res, done);
+            try {
+            const contentType = req.headers['content-type'] || '';
+            if (contentType.startsWith('multipart/form-data')){
+              const buffer = await readBuffer(req);
+              const boundary = getBoundary(contentType);
+              if(!boundary){
+                throw new Error("No boundary found in Content-Type");
+              }
+              const parts = parseMultipart(buffer, boundary);
+              req.body =  parts.fields;
+              req.files = parts.files;
+
+
             }
+            else if(contentType.includes('application/json')){
+              const buffer = await readBuffer(req);
+              const text = buffer.toString('utf-8');
+              try{
+                req.body = JSON.parse(text);
+              }
+              catch(e){
+                throw new Error("Invalid JSON");
+              }
+            }
+            else{
+              req.body = {};
+            }
+            this.handle(req, res, done);
+          }
+          catch(err){
+            if(err.message === 'Request Entity Too Large'){
+              res.statusCode = 413;
+              res.end(err.message);
+              return;
+            }
+
+            if(err.message === 'Invalid JSON' || err.message === 'No boundary found in Content-Type'){
+              res.statusCode = 400;
+              res.end(err.message);
+              return;
+            }
+            else{
+              res.statusCode = 500;
+              res.end('Internal Server Error');
+              console.error(err);
+              return;
+            }
+          }
           });
         });
       });
