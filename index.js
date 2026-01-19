@@ -27,7 +27,7 @@ export { default as Dynamo } from './database/index.js';
 
 // Utilities
 export { PatternBuilder } from './pattern-builder/PatternBuilder.js';
-export { console } from './utils/console.js';
+export { green, red, yellow, blue, magenta, cyan, reset } from './utils/console.js';
 // Default export (Nicola Core)
 import Nicola from './core/Core.js';
 export default Nicola;
