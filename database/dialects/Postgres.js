@@ -1,4 +1,5 @@
 import Driver from "../Driver.js";
+import { green } from "../utils/console.js";
 
 
 class Postgres extends Driver {
@@ -37,6 +38,7 @@ class Postgres extends Driver {
             this.client = new Pool(config)
 
             await this.client.query('SELECT NOW()')
+            console.log(green("Base de datos conectada"))
         }
         catch (e) {
             if (e.code === 'ERR_MODULE_NOT_FOUND') {
@@ -74,20 +76,20 @@ class Postgres extends Driver {
 
     compileSelect(builder) {
         const stringColums = builder.columns.join(', ')
-        let ordersBy = ''  
+        let ordersBy = ''
         let limit = ''
         let offset = ''
-        if(builder.orders.length > 0){
+        if (builder.orders.length > 0) {
             const OrdesArray = builder.orders.map(o => {
                 return ` ${o.column} ${o.direction}`
             })
-            ordersBy =' ORDER BY ' + OrdesArray.join(',')
+            ordersBy = ' ORDER BY ' + OrdesArray.join(',')
 
         }
-        if(builder.limitCount !== null){
+        if (builder.limitCount !== null) {
             limit = ` LIMIT ${builder.limitCount}`
         }
-        if(builder.offsetCount !== null){
+        if (builder.offsetCount !== null) {
             offset = ` OFFSET ${builder.offsetCount}`
         }
         const where = this._buildWhere(builder.conditions)
@@ -154,7 +156,7 @@ class Postgres extends Driver {
         const sql = `UPDATE ${builder.table} SET ${stringColums} ${where}`
 
         return {
-            sql:sql,
+            sql: sql,
             bindings: builder.bindings
         }
     }
@@ -163,9 +165,9 @@ class Postgres extends Driver {
         const where = this._buildWhere(builder.conditions)
 
         const sql = `DELETE FROM ${builder.table} ${where}`
-        
-        return{
-            sql:sql,
+
+        return {
+            sql: sql,
             bindings: builder.bindings
         }
     }
