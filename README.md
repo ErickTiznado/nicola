@@ -18,7 +18,8 @@ Nicola expone un **servidor HTTP nativo** con un **router tipo Express** y utili
 - [Levantar el servidor (dev)](#-levantar-el-servidor-dev)
 - [Quickstart (manual)](#-quickstart-manual)
 - [Guía del Router](#-guía-del-router)
-- [Request/Response (lo que hay)](#-requestresponse-lo-que-hay)
+- [Request/Response y Archivos](#-requestresponse-lo-que-hay)
+- [PatternBuilder (Regex Fluido)](#-patternbuilder-regex-fluido)
 - [Manejo de errores](#-manejo-de-errores)
 - [Middlewares](#-middlewares)
 - [Estructura recomendada para features](#-estructura-recomendada-para-features)
@@ -35,7 +36,10 @@ Nicola expone un **servidor HTTP nativo** con un **router tipo Express** y utili
 Esta lista está alineada con el **código actual** del repositorio:
 
 - **Core/Router**: `Nicola` (default) extiende `Remote`.
-- **Body parsing**: JSON si `Content-Type` incluye `application/json` (límite ~2MB). Si no, `req.body = {}`.
+- **Body parsing**:
+  - `application/json`: parseo automático (límite configurable).
+  - `multipart/form-data`: soporte nativo para **subida de archivos** y campos. Disponible en `req.files` y `req.body`.
+  - Si no hay body o no coincide el Content-Type, `req.body = {}`.
 - **Helpers de response**: `res.json(data)` y `res.send(text)`.
   - Nota: no existe `res.status()`; usa `res.statusCode`.
 - **CORS**: `EasyCors()` permite `*` y responde `OPTIONS` con `204`.
@@ -255,10 +259,32 @@ Nicola trabaja sobre `http.IncomingMessage` y añade:
 - `req.url`: **solo pathname** (sin querystring). Se reescribe internamente.
 - `req.query`: objeto creado desde `?a=1&b=hola`.
 - `req.params`: solo existe en rutas con `:param`.
-- `req.body`: solo se parsea si `Content-Type` incluye `application/json`.
-  - inválido => `400 Bad Request: Invalid JSON`
-  - > ~2MB => `413 Request Entity Too Large`
-  - si no es JSON => `{}`
+- **req.body**:
+  - JSON: si `Content-Type` es `application/json`.
+  - Campos de formulario: si es `multipart/form-data`.
+- **req.files**: (Solo `multipart/form-data`) Objeto con los archivos subidos.
+  - Estructura: `{ miArchivo: { filename, type, data, size } }`
+  - `data` es un **Buffer**.
+
+### Ejemplo de Subida de Archivos
+
+```js
+app.post("/upload", async (req, res) => {
+  if (!req.files || !req.files.avatar) {
+    res.statusCode = 400;
+    return res.end("No se subió avatar");
+  }
+
+  const file = req.files.avatar;
+  const base64 = file.data.toString("base64");
+
+  res.json({
+    recibido: file.filename,
+    tamaño: file.size,
+    base64Preview: base64.substring(0, 50) + "..."
+  });
+});
+```
 
 ### Response (`res`)
 
@@ -272,6 +298,37 @@ Para status codes, usa:
 ```js
 res.statusCode = 201;
 res.json({ created: true });
+```
+
+---
+
+## 🎨 PatternBuilder (Regex Fluido)
+
+Nicola incluye **PatternBuilder**, un motor potente para crear Expresiones Regulares de forma legible y fluida.
+
+> 📚 **Documentación Completa**: Consulta [pattern-builder/README.md](./pattern-builder/PatternBuilder.README.md) para la guía total.
+
+### Ejemplo Rápido
+
+```js
+import { PatternBuilder } from "nicola-framework";
+
+// Validar email
+const emailPattern = new PatternBuilder()
+  .startOfLine()
+  .word().oneOrMore()
+  .find("@")
+  .word().oneOrMore()
+  .find(".")
+  .word().oneOrMore()
+  .endOfLine();
+
+emailPattern.matches("test@example.com"); // true
+
+// Capturar texto entre comillas
+const quoted = new PatternBuilder().cut('"');
+const result = quoted.get('name="Nicola"');
+// result[1] === "Nicola"
 ```
 
 ---
@@ -739,8 +796,9 @@ npm test
 
 ### 3) El body llega vacío
 
-- Nicola solo parsea JSON cuando `Content-Type` incluye `application/json`.
-- `multipart/form-data` y `application/x-www-form-urlencoded` no están soportados (por ahora).
+- Ensure `Content-Type` headers are set correctly.
+- Nicola supports `application/json` and `multipart/form-data`.
+- `application/x-www-form-urlencoded` is **not** supported yet.
 
 ### 4) CORS en preflight no aplica como esperas
 
