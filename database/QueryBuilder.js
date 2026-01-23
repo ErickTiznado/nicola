@@ -6,8 +6,8 @@ class QueryBuilder {
     this.columns = ["*"];
     this.conditions = [];
     this.bindings = [];
-    this.orders= [];
-    this.limitCount= null;
+    this.orders = [];
+    this.limitCount = null;
     this.offsetCount = null;
   }
 
@@ -45,6 +45,12 @@ class QueryBuilder {
     return this;
   }
 
+
+  async all() {
+    this.columns = ["*"];
+    return this.get();
+  }
+
   async get() {
     const { sql, bindings } = Connection.client.compileSelect(this);
     const result = await Connection.query(sql, bindings);
@@ -69,22 +75,22 @@ class QueryBuilder {
     return result.count;
   }
 
-  orderBy(column, direction = "ASC"){
+  orderBy(column, direction = "ASC") {
     this.orders.push({
-        column: column,
-        direction: direction.toUpperCase()
+      column: column,
+      direction: direction.toUpperCase()
     })
 
     return this;
   }
 
-  limit(number){
+  limit(number) {
     this.limitCount = number
 
     return this;
   }
 
-  offset(number){
+  offset(number) {
     this.offsetCount = number
 
     return this;
