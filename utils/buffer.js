@@ -1,6 +1,6 @@
 export const readBuffer = (req, res) => {
   return new Promise((resolve, reject) => {
-    const limit = 3e6;
+    const limit = Number(process.env.BUFFER_LIMIT) || 5e6;
     const chunks = [];
     let totalSize = 0;
 
