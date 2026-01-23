@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
+import readline from 'readline';
 import { green, yellow, red, blue, magent, cyan, bold } from '../utils/console.js';
 
 class LiveCurrent {
@@ -10,6 +11,9 @@ class LiveCurrent {
         this.debounceTimer = null;
         this.isReloading = false;
         this.startTime = 0;
+
+        // Error handling
+        this.stderrBuffer = '';
 
         // Configuration
         this.debounceDelay = 200;
@@ -27,7 +31,6 @@ class LiveCurrent {
         this.watch();
         this.reload('Initial boot');
 
-        // Cleanup on exit
         process.on('SIGINT', () => this.cleanup());
         process.on('SIGTERM', () => this.cleanup());
     }
@@ -66,15 +69,17 @@ class LiveCurrent {
     async ignite() {
         this.state = 'BOOTING';
         this.startTime = Date.now();
+        this.stderrBuffer = ''; // Reset buffer
 
-        // Spawn with 'pipe' for stdio to intercept logs
-        // capturing stdout/stderr allows us to filter/highlight/detect state
         this.process = spawn('node', [this.entryPoint], {
             stdio: ['ignore', 'pipe', 'pipe']
         });
 
         this.process.stdout.on('data', (data) => this.handleStdout(data));
-        this.process.stderr.on('data', (data) => this.handleStderr(data));
+        this.process.stderr.on('data', (data) => {
+            this.handleStderr(data);
+            this.stderrBuffer += data.toString();
+        });
 
         this.process.on('error', (err) => {
             console.error(red(`❌ Failed to start process: ${err.message}`));
@@ -85,15 +90,15 @@ class LiveCurrent {
             if (code !== 0 && code !== null) {
                 this.state = 'CRASHED';
                 process.stdout.write('\x07'); // Bell
-                console.log(red(`\n🔴 App crashed with code ${code}. Waiting for changes...`));
+
+                // Smart Crash Analysis
+                this.analyzeCrash(code);
             }
         });
     }
 
     handleStdout(data) {
         const text = data.toString();
-
-        // Smart URL detection
         if (text.includes('http://') || text.includes('listening')) {
             if (this.state !== 'READY') {
                 const duration = Date.now() - this.startTime;
@@ -101,17 +106,86 @@ class LiveCurrent {
                 this.state = 'READY';
             }
         }
-
-        // Pass through logs
         process.stdout.write(text);
     }
 
     handleStderr(data) {
-        const text = data.toString();
-        // Highlight stack traces
-        const formatted = text.replace(/(\/[^:]+:\d+:\d+)/g, bold(cyan('$1')));
-        process.stderr.write(formatted);
+        // Just pass through live, we buffer it for analysis on exit
+        process.stderr.write(data);
     }
+
+    analyzeCrash(code) {
+        console.log(''); // New line
+        const errorText = this.stderrBuffer;
+
+        // Try to parse file location
+        // Common format: /path/to/file.js:line:col
+        // Or SyntaxError: ... \n    at ... (/path/to/file.js:line:col)
+        let match = errorText.match(/\((.+):(\d+):(\d+)\)/); // Stack trace style
+        if (!match) {
+            match = errorText.match(/^(.+):(\d+)$/m); // Syntax Error style top line
+            if (!match) {
+                // Try loose match for file path at start of line
+                match = errorText.match(/^(.+\.js):(\d+)/m);
+            }
+        }
+
+        const boxWidth = 60;
+        const line = '━'.repeat(boxWidth);
+        const title = ' 💥 APP CRASHED ';
+        const padding = ' '.repeat(Math.max(0, boxWidth - title.length - 2));
+
+        console.log(red(` ┏${line}┓`));
+        console.log(red(` ┃${title}${padding}┃`));
+        console.log(red(` ┗${line}┛`));
+
+        if (match) {
+            const filePath = match[1];
+            const lineNum = parseInt(match[2]);
+            const relativePath = path.relative(process.cwd(), filePath);
+
+            console.log(bold(`\n 📂 Location:`));
+            console.log(`    ${cyan(relativePath)}:${yellow(lineNum)}`);
+
+            this.printCodeFrame(filePath, lineNum);
+        } else {
+            console.log(yellow(`\n ⚠️  Could not pinpoint file location.`));
+        }
+
+        console.log(red(`\n 🔄 Waiting for changes...`));
+    }
+
+    printCodeFrame(filePath, lineNum) {
+        try {
+            if (!fs.existsSync(filePath)) return;
+
+            const content = fs.readFileSync(filePath, 'utf8');
+            const lines = content.split('\n');
+            const start = Math.max(0, lineNum - 3);
+            const end = Math.min(lines.length, lineNum + 2);
+
+            console.log(bold(`\n 💻 Code:`));
+
+            for (let i = start; i < end; i++) {
+                const currentLine = i + 1;
+                const isErrorLine = currentLine === lineNum;
+                const prefix = isErrorLine ? red(' > ') : '   ';
+                const lineContent = lines[i].replace(/\r$/, ''); // Remove \r
+
+                let output = `${prefix}${String(currentLine).padEnd(3)} | ${lineContent}`;
+                if (isErrorLine) {
+                    console.log(bold(output));
+                } else {
+                    console.log(canary(output)); // Using a dim color if available, else just log
+                }
+            }
+        } catch (e) {
+            // Ignore errors reading file
+        }
+    }
+
+    // ... helper for weak color
+
 
     async reload(trigger = 'manual') {
         if (this.isReloading) return;
@@ -121,10 +195,8 @@ class LiveCurrent {
         if (this.debounceTimer) clearTimeout(this.debounceTimer);
 
         this.debounceTimer = setTimeout(async () => {
-            // Smart clear: only clear if we are not in a crash loop or if requested
-            // For now, always clear to give fresh view
             console.clear();
-            this.printBanner(); // Reprint banner
+            this.printBanner();
             console.log(magent(`\n🔄 Reloading... (${trigger})`));
 
             await this.killProcess();
@@ -174,15 +246,9 @@ class LiveCurrent {
             process.stdin.setRawMode(true);
             process.stdin.resume();
             process.stdin.setEncoding('utf8');
-
             process.stdin.on('data', (key) => {
-                // CTRL+C (Exit)
-                if (key === '\u0003') {
-                    this.cleanup();
-                }
-
+                if (key === '\u0003') this.cleanup();
                 const input = key.toString().trim().toLowerCase();
-
                 if (input === 'q') this.cleanup();
                 if (input === 'r') this.reload('Manual Shortcut');
                 if (input === 'c') console.clear();
@@ -193,11 +259,12 @@ class LiveCurrent {
     }
 
     cleanup() {
-        if (this.process) {
-            this.process.kill();
-        }
+        if (this.process) this.process.kill();
         process.exit();
     }
 }
+
+// Adding a helper for dim text since it wasn't in original imports
+function canary(text) { return `\x1b[90m${text}\x1b[0m`; }
 
 export default LiveCurrent;
